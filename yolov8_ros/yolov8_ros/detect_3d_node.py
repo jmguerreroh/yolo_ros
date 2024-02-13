@@ -37,6 +37,8 @@ from yolov8_msgs.msg import DetectionArray
 from yolov8_msgs.msg import KeyPoint3D
 from yolov8_msgs.msg import KeyPoint3DArray
 from yolov8_msgs.msg import BoundingBox3D
+from yolov8_msgs.msg import KeyPoint2D
+from yolov8_msgs.msg import Point2D
 
 
 class Detect3DNode(Node):
@@ -177,8 +179,51 @@ class Detect3DNode(Node):
             return None
 
         # find the z coordinate on the 3D BB
+        up = Point2D()
+        down = Point2D()
+        up_detected = False
+        down_detected = False
+
+        kp5 = KeyPoint2D()
+        kp6 = KeyPoint2D()
+        kp11 = KeyPoint2D()
+        kp12 = KeyPoint2D()
+
+        # get the keypoints
+        for kp in detection.keypoints.data:
+            if kp.id == 5:
+                kp5 = kp
+                up_detected = True
+            elif kp.id == 6:
+                kp6 = kp
+                up_detected = True
+            elif kp.id == 11:
+                kp11 = kp
+                down_detected = True
+            elif kp.id == 12:
+                kp12 = kp
+                down_detected = True
+
+        # if the keypoints are detected
+        if up_detected and down_detected:
+            # get shoulder with better score
+            if kp5.score > kp6.score:
+                up = kp5
+            else:
+                up = kp6
+
+            # get hip with better score
+            if kp11.score > kp12.score:
+                down = kp11
+            else:
+                down = kp12
+
+            center_x = (up.point.x + down.point.x) / 2
+            center_y = (up.point.y + down.point.y) / 2
+
         bb_center_z_coord = depth_image[int(center_y)][int(
             center_x)] / self.depth_image_units_divisor
+
         z_diff = np.abs(roi - bb_center_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
         if not np.any(mask_z):
