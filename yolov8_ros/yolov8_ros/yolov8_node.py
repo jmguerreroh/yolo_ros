@@ -218,6 +218,7 @@ class Yolov8Node(Node):
             for i in range(len(results)):
 
                 aux_msg = Detection()
+                aux_msg.source_img = msg
 
                 if results.boxes:
                     aux_msg.class_id = hypothesis[i]["class_id"]
