@@ -224,6 +224,13 @@ class Detect3DNode(Node):
         bb_center_z_coord = depth_image[int(center_y)][int(
             center_x)] / self.depth_image_units_divisor
 
+        # if the center of the BB is not detected
+        if np.isnan(bb_center_z_coord) or \
+                bb_center_z_coord == 0 or \
+                np.isinf(bb_center_z_coord):
+            return None
+
+        # if the center of the BB is detected
         z_diff = np.abs(roi - bb_center_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
         if not np.any(mask_z):
