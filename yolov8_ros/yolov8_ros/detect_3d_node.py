@@ -15,10 +15,13 @@
 
 
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import rclpy
-from rclpy.node import Node
+from rclpy.lifecycle import Node
+from rclpy.lifecycle import Publisher
+from rclpy.lifecycle import State
+from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
@@ -45,6 +48,10 @@ class Detect3DNode(Node):
 
     def __init__(self) -> None:
         super().__init__("bbox3d_node")
+        self._pub: Optional[Publisher] = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Configuring from {state.label} state...')
 
         # parameters
         self.declare_parameter("target_frame", "base_link")
@@ -61,7 +68,7 @@ class Detect3DNode(Node):
 
         self.declare_parameter("depth_image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        depth_image_qos_profile = QoSProfile(
+        self.depth_image_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "depth_image_reliability").get_parameter_value().integer_value,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -71,7 +78,7 @@ class Detect3DNode(Node):
 
         self.declare_parameter("depth_info_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        depth_info_qos_profile = QoSProfile(
+        self.depth_info_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "depth_info_reliability").get_parameter_value().integer_value,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -85,21 +92,47 @@ class Detect3DNode(Node):
         self.cv_bridge = CvBridge()
 
         # pubs
-        self._pub = self.create_publisher(DetectionArray, "detections_3d", 10)
+        self._pub = self.create_lifecycle_publisher(DetectionArray, "detections_3d", 10)
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Activating from {state.label} state...')
 
         # subs
         self.depth_sub = message_filters.Subscriber(
             self, Image, "depth_image",
-            qos_profile=depth_image_qos_profile)
+            qos_profile=self.depth_image_qos_profile)
         self.depth_info_sub = message_filters.Subscriber(
             self, CameraInfo, "depth_info",
-            qos_profile=depth_info_qos_profile)
+            qos_profile=self.depth_info_qos_profile)
         self.detections_sub = message_filters.Subscriber(
             self, DetectionArray, "detections")
 
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
             (self.depth_sub, self.depth_info_sub, self.detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.on_detections)
+
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Deactivating from {state.label} state...')
+
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Cleaning up from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+
+        return super().on_cleanup(state)
+
+    def on_shutdown(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Shutting down from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+
+        return super().on_shutdown(state)
 
     def on_detections(
         self,

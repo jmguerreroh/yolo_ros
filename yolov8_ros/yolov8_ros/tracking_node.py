@@ -16,8 +16,13 @@
 
 import numpy as np
 
+from typing import Optional
+
 import rclpy
-from rclpy.node import Node
+from rclpy.lifecycle import Node
+from rclpy.lifecycle import Publisher
+from rclpy.lifecycle import State
+from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
@@ -41,6 +46,10 @@ class TrackingNode(Node):
 
     def __init__(self) -> None:
         super().__init__("tracking_node")
+        self._pub: Optional[Publisher] = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Configuring from {state.label} state...')
 
         # params
         self.declare_parameter("tracker", "bytetrack.yaml")
@@ -49,7 +58,7 @@ class TrackingNode(Node):
 
         self.declare_parameter("image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        image_qos_profile = QoSProfile(
+        self.image_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "image_reliability").get_parameter_value().integer_value,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -61,17 +70,43 @@ class TrackingNode(Node):
         self.tracker = self.create_tracker(tracker)
 
         # pubs
-        self._pub = self.create_publisher(DetectionArray, "tracking", 10)
+        self._pub = self.create_lifecycle_publisher(DetectionArray, "tracking", 10)
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Activating from {state.label} state...')
 
         # subs
         image_sub = message_filters.Subscriber(
-            self, Image, "image_raw", qos_profile=image_qos_profile)
+            self, Image, "image_raw", qos_profile=self.image_qos_profile)
         detections_sub = message_filters.Subscriber(
             self, DetectionArray, "detections", qos_profile=10)
 
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
             (image_sub, detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.detections_cb)
+
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Deactivating from {state.label} state...')
+
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Cleaning up from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+
+        return super().on_cleanup(state)
+
+    def on_shutdown(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Shutting down from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+
+        return super().on_shutdown(state)
 
     def create_tracker(self, tracker_yaml: str) -> BaseTrack:
 

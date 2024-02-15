@@ -17,10 +17,13 @@
 import cv2
 import random
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional
 
 import rclpy
-from rclpy.node import Node
+from rclpy.lifecycle import Node
+from rclpy.lifecycle import Publisher
+from rclpy.lifecycle import State
+from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -45,6 +48,10 @@ class DebugNode(Node):
 
     def __init__(self) -> None:
         super().__init__("debug_node")
+        self._pub: Optional[Publisher] = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Configuring from {state.label} state...')
 
         self._class_to_color = {}
         self.cv_bridge = CvBridge()
@@ -52,7 +59,7 @@ class DebugNode(Node):
         # params
         self.declare_parameter("image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        image_qos_profile = QoSProfile(
+        self.image_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "image_reliability").get_parameter_value().integer_value,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -61,15 +68,21 @@ class DebugNode(Node):
         )
 
         # pubs
-        self._dbg_pub = self.create_publisher(Image, "dbg_image", 10)
-        self._bb_markers_pub = self.create_publisher(
+        self._dbg_pub = self.create_lifecycle_publisher(Image, "dbg_image", 10)
+        self._bb_markers_pub = self.create_lifecycle_publisher(
             MarkerArray, "dgb_bb_markers", 10)
-        self._kp_markers_pub = self.create_publisher(
+        self._kp_markers_pub = self.create_lifecycle_publisher(
             MarkerArray, "dgb_kp_markers", 10)
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Activating from \
+                               {state.label} state...')
 
         # subs
         image_sub = message_filters.Subscriber(
-            self, Image, "image_raw", qos_profile=image_qos_profile)
+            self, Image, "image_raw", qos_profile=self.image_qos_profile)
         detections_sub = message_filters.Subscriber(
             self, DetectionArray, "detections", qos_profile=10)
 
@@ -77,7 +90,33 @@ class DebugNode(Node):
             (image_sub, detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.detections_cb)
 
-    def draw_box(self, cv_image: np.array, detection: Detection, color: Tuple[int]) -> np.array:
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Deactivating from {state.label} state...')
+
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Cleaning up from {state.label} state...')
+
+        self.destroy_publisher(self._dbg_pub)
+        self.destroy_publisher(self._bb_markers_pub)
+        self.destroy_publisher(self._kp_markers_pub)
+
+        return super().on_cleanup(state)
+
+    def on_shutdown(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Shutting down from {state.label} state...')
+
+        self.destroy_publisher(self._dbg_pub)
+        self.destroy_publisher(self._bb_markers_pub)
+        self.destroy_publisher(self._kp_markers_pub)
+
+        return super().on_shutdown(state)
+
+    def draw_box(self, cv_image: np.array, detection: Detection, 
+                 color: Tuple[int]) -> np.array:
 
         # get detection info
         label = detection.class_name

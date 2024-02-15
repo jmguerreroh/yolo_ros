@@ -14,10 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import rclpy
-from rclpy.node import Node
+from rclpy.lifecycle import Node
+from rclpy.lifecycle import Publisher
+from rclpy.lifecycle import State
+from rclpy.lifecycle import TransitionCallbackReturn
+
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
@@ -46,10 +50,14 @@ class Yolov8Node(Node):
 
     def __init__(self) -> None:
         super().__init__("yolov8_node")
+        self._pub: Optional[Publisher] = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Configuring from {state.label} state...')
 
         # params
         self.declare_parameter("model", "yolov8m.pt")
-        model = self.get_parameter(
+        self.model = self.get_parameter(
             "model").get_parameter_value().string_value
 
         self.declare_parameter("device", "cuda:0")
@@ -66,7 +74,7 @@ class Yolov8Node(Node):
 
         self.declare_parameter("image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        image_qos_profile = QoSProfile(
+        self.image_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "image_reliability").get_parameter_value().integer_value,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -74,21 +82,52 @@ class Yolov8Node(Node):
             depth=1
         )
 
-        self.cv_bridge = CvBridge()
-        self.yolo = YOLO(model)
-        self.yolo.fuse()
-
         # pubs
-        self._pub = self.create_publisher(DetectionArray, "detections", 10)
+        self._pub = self.create_lifecycle_publisher(DetectionArray,
+                                                    "detections", 10)
+
+        # services
+        self._srv = self.create_service(SetBool, "enable", self.enable_cb)
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Activating from {state.label} state...')
 
         # subs
         self._sub = self.create_subscription(
             Image, "image_raw", self.image_cb,
-            image_qos_profile
+            self.image_qos_profile
         )
 
-        # services
-        self._srv = self.create_service(SetBool, "enable", self.enable_cb)
+        self.cv_bridge = CvBridge()
+        self.yolo = YOLO(self.model)
+        self.yolo.fuse()
+
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Deactivating from {state.label} state...')
+
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Cleaning from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+        self.destroy_service(self._srv)
+        self.destroy_subscription(self._sub)
+
+        return super().on_cleanup(state)
+
+    def on_shutdown(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Shutting down from {state.label} state...')
+
+        self.destroy_publisher(self._pub)
+        self.destroy_service(self._srv)
+        self.destroy_subscription(self._sub)
+
+        return super().on_shutdown(state)
 
     def enable_cb(
         self,
