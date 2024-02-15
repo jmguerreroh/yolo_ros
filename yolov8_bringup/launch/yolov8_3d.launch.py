@@ -141,7 +141,7 @@ def generate_launch_description():
     tracking_node_cmd = Node(
         package="yolov8_ros",
         executable="tracking_node",
-        name="tracking_node",
+        name="yolov8_tracking_node",
         namespace=namespace,
         parameters=[{
             "tracker": tracker,
@@ -153,7 +153,7 @@ def generate_launch_description():
     detect_3d_node_cmd = Node(
         package="yolov8_ros",
         executable="detect_3d_node",
-        name="detect_3d_node",
+        name="yolov8_detect_3d_node",
         namespace=namespace,
         parameters=[{
             "target_frame": target_frame,
@@ -172,7 +172,7 @@ def generate_launch_description():
     debug_node_cmd = Node(
         package="yolov8_ros",
         executable="debug_node",
-        name="debug_node",
+        name="yolov8_debug_node",
         namespace=namespace,
         parameters=[{"image_reliability": image_reliability}],
         remappings=[
