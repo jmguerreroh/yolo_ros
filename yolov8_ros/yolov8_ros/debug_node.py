@@ -24,7 +24,6 @@ from rclpy.lifecycle import Node
 from rclpy.lifecycle import Publisher
 from rclpy.lifecycle import State
 from rclpy.lifecycle import TransitionCallbackReturn
-from lifecycle_msgs.srv import ChangeState
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
