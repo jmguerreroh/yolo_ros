@@ -2,9 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>yolov8_ros</name>
-  <version>0.0.0</version>
-  <description>YOLOv8 for ROS 2</description>
+  <version>1.0.0</version>
+  <description>YOLOv8 for ROS 2 using Lifecycle Nodes</description>
   <maintainer email="mgons@unileon.es">Miguel Ángel González Santamarta</maintainer>
+  <author email="josemiguel.guerrero@urjc.es">José Miguel Guerrero Hernández</author>
   <license>GPL-3</license>
 
   <test_depend>ament_copyright</test_depend>
