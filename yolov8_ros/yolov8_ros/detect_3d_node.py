@@ -23,6 +23,8 @@ from rclpy.lifecycle import Node
 from rclpy.lifecycle import Publisher
 from rclpy.lifecycle import State
 from rclpy.lifecycle import TransitionCallbackReturn
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
+
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
@@ -45,7 +47,7 @@ from yolov8_msgs.msg import KeyPoint2D
 from yolov8_msgs.msg import Point2D
 
 
-class Detect3DNode(Node):
+class Detect3DNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
         super().__init__("yolov8_detect_3d_node")

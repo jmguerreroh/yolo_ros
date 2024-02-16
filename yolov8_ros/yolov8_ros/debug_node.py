@@ -25,6 +25,8 @@ from rclpy.lifecycle import Node
 from rclpy.lifecycle import Publisher
 from rclpy.lifecycle import State
 from rclpy.lifecycle import TransitionCallbackReturn
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
+
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -45,7 +47,7 @@ from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 
 
-class DebugNode(Node):
+class DebugNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
         super().__init__("yolov8_debug_node")
