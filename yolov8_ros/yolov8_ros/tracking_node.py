@@ -46,7 +46,7 @@ from yolov8_msgs.msg import DetectionArray
 class TrackingNode(Node):
 
     def __init__(self) -> None:
-        super().__init__("tracking_node")
+        super().__init__("yolov8_tracking_node")
         self._pub: Optional[Publisher] = None
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:

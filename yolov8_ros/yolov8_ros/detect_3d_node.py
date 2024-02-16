@@ -48,7 +48,7 @@ from yolov8_msgs.msg import Point2D
 class Detect3DNode(Node):
 
     def __init__(self) -> None:
-        super().__init__("bbox3d_node")
+        super().__init__("yolov8_detect_3d_node")
         self._pub: Optional[Publisher] = None
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:

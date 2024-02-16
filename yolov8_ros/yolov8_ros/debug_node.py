@@ -48,7 +48,7 @@ from yolov8_msgs.msg import DetectionArray
 class DebugNode(Node):
 
     def __init__(self) -> None:
-        super().__init__("debug_node")
+        super().__init__("yolov8_debug_node")
         self._pub: Optional[Publisher] = None
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:
