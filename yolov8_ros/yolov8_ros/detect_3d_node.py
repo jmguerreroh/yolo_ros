@@ -240,6 +240,26 @@ class Detect3DNode(CascadeLifecycleNode):
                 kp12 = kp
                 down_detected = True
 
+        # if the keypoints are detected get the keypoint with better score    
+        if up_detected and down_detected:
+            up = kp5 if kp5.score > kp6.score else kp6
+            down = kp11 if kp11.score > kp12.score else kp12
+
+            center_x = (up.point.x + down.point.x) / 2
+            center_y = (up.point.y + down.point.y) / 2
+
+        if up_detected and not down_detected:
+            up = kp5 if kp5.score > kp6.score else kp6
+
+            center_x = up.point.x
+            center_y = up.point.y
+
+        if down_detected and not up_detected:
+            down = kp11 if kp11.score > kp12.score else kp12
+
+            center_x = down.point.x
+            center_y = down.point.y
+
         # if the keypoints are detected
         if up_detected and down_detected:
             # get shoulder with better score
