@@ -255,11 +255,11 @@ class Yolov8Node(CascadeLifecycleNode):
 
             # create detection msgs
             detections_msg = DetectionArray()
+            # detections_msg.source_img = msg
 
             for i in range(len(results)):
 
                 aux_msg = Detection()
-                aux_msg.source_img = msg
 
                 if results.boxes:
                     aux_msg.class_id = hypothesis[i]["class_id"]

@@ -46,6 +46,9 @@ from yolov8_msgs.msg import BoundingBox3D
 from yolov8_msgs.msg import KeyPoint2D
 from yolov8_msgs.msg import Point2D
 
+# importa la librería de OpenCV
+import cv2
+
 
 class Detect3DNode(CascadeLifecycleNode):
 
@@ -103,6 +106,9 @@ class Detect3DNode(CascadeLifecycleNode):
         self.get_logger().info(f'Activating from {state.label} state...')
 
         # subs
+        self.rgb_sub = message_filters.Subscriber(
+            self, Image, "image_raw",
+            qos_profile=self.depth_image_qos_profile)
         self.depth_sub = message_filters.Subscriber(
             self, Image, "depth_image",
             qos_profile=self.depth_image_qos_profile)
@@ -113,7 +119,7 @@ class Detect3DNode(CascadeLifecycleNode):
             self, DetectionArray, "detections")
 
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            (self.depth_sub, self.depth_info_sub, self.detections_sub), 10, 0.5)
+            (self.rgb_sub, self.depth_sub, self.depth_info_sub, self.detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.on_detections)
 
         return super().on_activate(state)
@@ -139,6 +145,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
     def on_detections(
         self,
+        rgb_msg: Image,
         depth_msg: Image,
         depth_info_msg: CameraInfo,
         detections_msg: DetectionArray,
@@ -146,6 +153,8 @@ class Detect3DNode(CascadeLifecycleNode):
 
         new_detections_msg = DetectionArray()
         new_detections_msg.header = detections_msg.header
+        new_detections_msg.source_img = rgb_msg
+
         new_detections_msg.detections = self.process_detections(
             depth_msg, depth_info_msg, detections_msg)
         self._pub.publish(new_detections_msg)

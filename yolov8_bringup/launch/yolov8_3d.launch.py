@@ -164,6 +164,7 @@ def generate_launch_description():
             "depth_info_reliability": depth_info_reliability
         }],
         remappings=[
+            ("image_raw", input_image_topic),
             ("depth_image", input_depth_topic),
             ("depth_info", input_depth_info_topic),
             ("detections", "tracking")
