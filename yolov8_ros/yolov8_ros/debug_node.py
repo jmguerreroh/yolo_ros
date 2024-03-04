@@ -73,9 +73,9 @@ class DebugNode(CascadeLifecycleNode):
         # pubs
         self._dbg_pub = self.create_lifecycle_publisher(Image, "dbg_image", 10)
         self._bb_markers_pub = self.create_lifecycle_publisher(
-            MarkerArray, "dgb_bb_markers", 10)
+            MarkerArray, "dbg_bb_markers", 10)
         self._kp_markers_pub = self.create_lifecycle_publisher(
-            MarkerArray, "dgb_kp_markers", 10)
+            MarkerArray, "dbg_kp_markers", 10)
 
         return TransitionCallbackReturn.SUCCESS
 
