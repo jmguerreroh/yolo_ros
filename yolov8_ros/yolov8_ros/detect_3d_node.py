@@ -220,6 +220,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
         roi = depth_image[v_min:v_max, u_min:u_max] / \
             self.depth_image_units_divisor  # convert to meters
+        
         if not np.any(roi):
             return None
 
@@ -285,41 +286,35 @@ class Detect3DNode(CascadeLifecycleNode):
 
             center_x = (up.point.x + down.point.x) / 2
             center_y = (up.point.y + down.point.y) / 2
-
-        bb_center_z_coord = depth_image[int(center_y)][int(
-            center_x)] / self.depth_image_units_divisor
-
-        # if the center of the BB is not detected
-        if np.isnan(bb_center_z_coord) or \
-                bb_center_z_coord == 0 or \
-                np.isinf(bb_center_z_coord):
+        
+        roi = np.ma.masked_invalid(roi)
+        if np.any(np.isfinite(roi)) and np.any(roi != 0):
+            average_z_coord = np.mean(roi[roi>0])
+        else:
             return None
 
         # if the center of the BB is detected
-        z_diff = np.abs(roi - bb_center_z_coord)
+        z_diff = np.abs(roi - average_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
         if not np.any(mask_z):
             return None
 
         roi_threshold = roi[mask_z]
         z_min, z_max = np.min(roi_threshold), np.max(roi_threshold)
-        z = (z_max + z_min) / 2
-        if z == 0:
-            return None
 
         # project from image to world space
         k = depth_info.k
         px, py, fx, fy = k[2], k[5], k[0], k[4]
-        x = z * (center_x - px) / fx
-        y = z * (center_y - py) / fy
-        w = z * (size_x / fx)
-        h = z * (size_y / fy)
+        x = average_z_coord * (center_x - px) / fx
+        y = average_z_coord * (center_y - py) / fy
+        w = average_z_coord * (size_x / fx)
+        h = average_z_coord * (size_y / fy)
 
         # create 3D BB
         msg = BoundingBox3D()
         msg.center.position.x = x
         msg.center.position.y = y
-        msg.center.position.z = z
+        msg.center.position.z = average_z_coord
         msg.size.x = w
         msg.size.y = h
         msg.size.z = float(z_max - z_min)

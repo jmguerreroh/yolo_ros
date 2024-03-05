@@ -134,7 +134,7 @@ def generate_launch_description():
             "device": device,
             "enable": enable,
             "threshold": threshold,
-            "image_reliability": image_reliability,
+            "image_reliability": image_reliability
         }],
         remappings=[("image_raw", input_image_topic)]
     )
@@ -167,7 +167,7 @@ def generate_launch_description():
             ("image_raw", input_image_topic),
             ("depth_image", input_depth_topic),
             ("depth_info", input_depth_info_topic),
-            ("detections", "tracking")
+            # ("detections", "tracking")
         ]
     )
 
