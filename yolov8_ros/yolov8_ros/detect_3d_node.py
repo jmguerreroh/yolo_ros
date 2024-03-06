@@ -286,6 +286,14 @@ class Detect3DNode(CascadeLifecycleNode):
             center_x = (up.point.x + down.point.x) / 2
             center_y = (up.point.y + down.point.y) / 2
 
+        # check center_x and center_y inside the image limits
+        center_x = int(center_x)
+        center_y = int(center_y)
+
+        if center_x < 0 or center_x >= depth_image.shape[1] or \
+                center_y < 0 or center_y >= depth_image.shape[0]:
+            return None
+
         bb_center_z_coord = depth_image[int(center_y)][int(
             center_x)] / self.depth_image_units_divisor
 
