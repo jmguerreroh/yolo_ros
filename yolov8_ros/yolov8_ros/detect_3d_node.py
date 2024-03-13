@@ -287,13 +287,31 @@ class Detect3DNode(CascadeLifecycleNode):
             center_x = (up.point.x + down.point.x) / 2
             center_y = (up.point.y + down.point.y) / 2
         
+
+        # check center_x and center_y inside the image limits
+        center_x = int(center_x)
+        center_y = int(center_y)
+
+        if center_x < 0 or center_x >= depth_image.shape[1] or \
+                center_y < 0 or center_y >= depth_image.shape[0]:
+            return None
+
+        bb_center_z_coord = depth_image[int(center_y)][int(
+            center_x)] / self.depth_image_units_divisor
+
+        # if the center of the BB is not detected
+        if np.isnan(bb_center_z_coord) or \
+                bb_center_z_coord == 0 or \
+                np.isinf(bb_center_z_coord):
+            return None
+
+        # if the center of the BB is detected
         roi = np.ma.masked_invalid(roi)
         if np.any(np.isfinite(roi)) and np.any(roi != 0):
             average_z_coord = np.mean(roi[roi>0])
         else:
             return None
-
-        # if the center of the BB is detected
+        
         z_diff = np.abs(roi - average_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
         if not np.any(mask_z):
