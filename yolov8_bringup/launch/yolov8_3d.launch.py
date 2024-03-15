@@ -134,7 +134,7 @@ def generate_launch_description():
             "device": device,
             "enable": enable,
             "threshold": threshold,
-            "image_reliability": image_reliability,
+            "image_reliability": image_reliability
         }],
         remappings=[("image_raw", input_image_topic)]
     )
