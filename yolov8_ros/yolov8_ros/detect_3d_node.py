@@ -314,11 +314,13 @@ class Detect3DNode(CascadeLifecycleNode):
         
         z_diff = np.abs(roi - average_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
+         
         if not np.any(mask_z):
-            return None
-
-        roi_threshold = roi[mask_z]
-        z_min, z_max = np.min(roi_threshold), np.max(roi_threshold)
+            z_size = self.maximum_detection_threshold
+        else:
+            roi_threshold = roi[mask_z]
+            z_min, z_max = np.min(roi_threshold), np.max(roi_threshold)
+            z_size = float(z_max - z_min)
 
         # project from image to world space
         k = depth_info.k
@@ -335,7 +337,7 @@ class Detect3DNode(CascadeLifecycleNode):
         msg.center.position.z = average_z_coord
         msg.size.x = w
         msg.size.y = h
-        msg.size.z = float(z_max - z_min)
+        msg.size.z = z_size
 
         return msg
 
