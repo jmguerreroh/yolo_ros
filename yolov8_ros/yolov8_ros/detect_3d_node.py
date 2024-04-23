@@ -293,13 +293,9 @@ class Detect3DNode(CascadeLifecycleNode):
         
 
         # check center_x and center_y inside the image limits
-        center_x = int(center_x)
-        center_y = int(center_y)
-
-        if center_x < 0 or center_x >= depth_image.shape[1] or \
-                center_y < 0 or center_y >= depth_image.shape[0]:
-            return None
-        
+        center_x = min(max(0, int(center_x)), depth_image.shape[1] - 1)
+        center_y = min(max(0, int(center_y)), depth_image.shape[0] - 1)
+                
         z_diff = np.abs(roi - average_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
          
