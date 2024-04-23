@@ -206,6 +206,7 @@ class Detect3DNode(CascadeLifecycleNode):
         depth_info: CameraInfo,
         detection: Detection
     ) -> BoundingBox3D:
+        self.get_logger().info(f'Converting BB to 3D...')
 
         # crop depth image by the 2d BB
         center_x = int(detection.bbox.center.position.x)
@@ -221,7 +222,11 @@ class Detect3DNode(CascadeLifecycleNode):
         roi = depth_image[v_min:v_max, u_min:u_max] / \
             self.depth_image_units_divisor  # convert to meters
         
-        if not np.any(roi):
+        # if the center of the BB is detected
+        roi = np.ma.masked_invalid(roi)
+        if np.any(np.isfinite(roi)) and np.any(roi != 0):
+            average_z_coord = np.mean(roi[roi>0])
+        else:
             return None
 
         # find the z coordinate on the 3D BB
@@ -294,22 +299,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
         if center_x < 0 or center_x >= depth_image.shape[1] or \
                 center_y < 0 or center_y >= depth_image.shape[0]:
-            return None
-
-        bb_center_z_coord = depth_image[int(center_y)][int(
-            center_x)] / self.depth_image_units_divisor
-
-        # if the center of the BB is not detected
-        if np.isnan(bb_center_z_coord) or \
-                bb_center_z_coord == 0 or \
-                np.isinf(bb_center_z_coord):
-            return None
-
-        # if the center of the BB is detected
-        roi = np.ma.masked_invalid(roi)
-        if np.any(np.isfinite(roi)) and np.any(roi != 0):
-            average_z_coord = np.mean(roi[roi>0])
-        else:
+            self.get_logger().info(f'Center is out of the image limits')
             return None
         
         z_diff = np.abs(roi - average_z_coord)
