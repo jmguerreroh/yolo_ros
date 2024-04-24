@@ -19,7 +19,6 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 import rclpy
-from rclpy.lifecycle import Node
 from rclpy.lifecycle import Publisher
 from rclpy.lifecycle import State
 from rclpy.lifecycle import TransitionCallbackReturn
@@ -45,9 +44,6 @@ from yolov8_msgs.msg import KeyPoint3DArray
 from yolov8_msgs.msg import BoundingBox3D
 from yolov8_msgs.msg import KeyPoint2D
 from yolov8_msgs.msg import Point2D
-
-# importa la librería de OpenCV
-import cv2
 
 
 class Detect3DNode(CascadeLifecycleNode):
@@ -220,11 +216,11 @@ class Detect3DNode(CascadeLifecycleNode):
 
         roi = depth_image[v_min:v_max, u_min:u_max] / \
             self.depth_image_units_divisor  # convert to meters
-        
+
         # check if there is valid information in the ROI
         roi = np.ma.masked_invalid(roi)
         if np.any(np.isfinite(roi)) and np.any(roi != 0):
-            average_z_coord = np.mean(roi[roi>0])
+            average_z_coord = np.mean(roi[roi > 0])
         else:
             return None
 
@@ -290,15 +286,14 @@ class Detect3DNode(CascadeLifecycleNode):
 
             center_x = (up.point.x + down.point.x) / 2
             center_y = (up.point.y + down.point.y) / 2
-        
 
         # check center_x and center_y inside the image limits
         center_x = min(max(0, int(center_x)), depth_image.shape[1] - 1)
         center_y = min(max(0, int(center_y)), depth_image.shape[0] - 1)
-                
+
         z_diff = np.abs(roi - average_z_coord)
         mask_z = z_diff <= self.maximum_detection_threshold
-         
+
         if not np.any(mask_z):
             z_size = self.maximum_detection_threshold
         else:

@@ -91,6 +91,13 @@ class Yolov8Node(CascadeLifecycleNode):
         # services
         self._srv = self.create_service(SetBool, "enable", self.enable_cb)
 
+        # cv bridge
+        self.cv_bridge = CvBridge()
+        
+        # yolo
+        self.yolo = YOLO(self.model)
+        self.yolo.fuse()
+
         return TransitionCallbackReturn.SUCCESS
 
     def on_activate(self, state: State) -> TransitionCallbackReturn:
@@ -101,10 +108,6 @@ class Yolov8Node(CascadeLifecycleNode):
             Image, "image_raw", self.image_cb,
             self.image_qos_profile
         )
-
-        self.cv_bridge = CvBridge()
-        self.yolo = YOLO(self.model)
-        self.yolo.fuse()
 
         return super().on_activate(state)
 
