@@ -1,0 +1,5 @@
+# service to change the yolo model run-time
+string model
+---
+bool success
+string message

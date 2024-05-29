@@ -46,36 +46,38 @@ from yolov8_msgs.msg import KeyPoint2DArray
 from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 from std_srvs.srv import SetBool
-
+from yolov8_msgs.srv import ChangeModel
 
 class Yolov8Node(CascadeLifecycleNode):
 
     def __init__(self) -> None:
         super().__init__("yolov8_node")
         self._pub: Optional[Publisher] = None
+        self.first_configuration = True
+
+        self.declare_parameter("model", "yolov8m.pt")
+        self.declare_parameter("device", "cuda:0")
+        self.declare_parameter("threshold", 0.5)
+        self.declare_parameter("enable", True)
+        self.declare_parameter("image_reliability",
+                            QoSReliabilityPolicy.BEST_EFFORT)
 
     def on_configure(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().info(f'Configuring from {state.label} state...')
-
         # params
-        self.declare_parameter("model", "yolov8m.pt")
+                
         self.model = self.get_parameter(
             "model").get_parameter_value().string_value
 
-        self.declare_parameter("device", "cuda:0")
         self.device = self.get_parameter(
             "device").get_parameter_value().string_value
 
-        self.declare_parameter("threshold", 0.5)
         self.threshold = self.get_parameter(
             "threshold").get_parameter_value().double_value
 
-        self.declare_parameter("enable", True)
         self.enable = self.get_parameter(
             "enable").get_parameter_value().bool_value
 
-        self.declare_parameter("image_reliability",
-                               QoSReliabilityPolicy.BEST_EFFORT)
         self.image_qos_profile = QoSProfile(
             reliability=self.get_parameter(
                 "image_reliability").get_parameter_value().integer_value,
@@ -90,6 +92,10 @@ class Yolov8Node(CascadeLifecycleNode):
 
         # services
         self._srv = self.create_service(SetBool, "enable", self.enable_cb)
+        
+        if self.first_configuration:
+            self._change_model_srv = self.create_service(ChangeModel, "change_model", self.change_model_cb)
+            self.first_configuration = False
 
         # cv bridge
         self.cv_bridge = CvBridge()
@@ -127,9 +133,9 @@ class Yolov8Node(CascadeLifecycleNode):
 
     def on_shutdown(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().info(f'Shutting down from {state.label} state...')
-
         self.destroy_publisher(self._pub)
         self.destroy_service(self._srv)
+        self.destroy_service(self._change_model_srv)
         self.destroy_subscription(self._sub)
 
         return super().on_shutdown(state)
@@ -283,7 +289,28 @@ class Yolov8Node(CascadeLifecycleNode):
             detections_msg.header = msg.header
             self._pub.publish(detections_msg)
 
+    def change_model_cb(
+        self,
+        req: ChangeModel.Request,
+        res: ChangeModel.Response
+    ) -> ChangeModel.Response:
+        try:
+            self.get_logger().info(f'Changing model to {req.model}...')
+           
+            self.on_deactivate(State("active", 3))
+            self.on_cleanup(State("inactive", 2))
+            self.set_parameters([rclpy.Parameter(name="model", value=req.model)])
+            self.on_configure(State("unconfigured", 1))
+            self.on_activate(State("inactive", 2))
 
+            res.success = True
+            res.message = f'Model changed to {req.model} successfully.'
+        except Exception as e:
+            self.get_logger().error(f'Failed to change model: {str(e)}')
+            res.success = False
+            res.message = f'Failed to change model: {str(e)}'
+        return res
+    
 def main():
     rclpy.init()
     node = Yolov8Node()
