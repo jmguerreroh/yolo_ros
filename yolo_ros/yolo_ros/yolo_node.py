@@ -26,6 +26,8 @@ from rclpy.qos import QoSReliabilityPolicy
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.lifecycle import LifecycleState
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
+
 
 import torch
 from ultralytics import YOLO, NAS, YOLOWorld
@@ -46,7 +48,7 @@ from yolo_msgs.msg import DetectionArray
 from yolo_msgs.srv import SetClasses
 
 
-class YoloNode(LifecycleNode):
+class YoloNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
         super().__init__("yolo_node")
@@ -393,8 +395,8 @@ class YoloNode(LifecycleNode):
 def main():
     rclpy.init()
     node = YoloNode()
-    node.trigger_configure()
-    node.trigger_activate()
+    # node.trigger_configure()
+    # node.trigger_activate()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

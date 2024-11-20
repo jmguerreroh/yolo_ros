@@ -26,6 +26,7 @@ from rclpy.qos import QoSReliabilityPolicy
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.lifecycle import LifecycleState
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
 
 import message_filters
 from cv_bridge import CvBridge
@@ -42,10 +43,10 @@ from yolo_msgs.msg import KeyPoint3DArray
 from yolo_msgs.msg import BoundingBox3D
 
 
-class Detect3DNode(LifecycleNode):
+class Detect3DNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
-        super().__init__("bbox3d_node")
+        super().__init__("yolo_detect_3d_node")
 
         # parameters
         self.declare_parameter("target_frame", "base_link")
@@ -427,8 +428,8 @@ class Detect3DNode(LifecycleNode):
 def main():
     rclpy.init()
     node = Detect3DNode()
-    node.trigger_configure()
-    node.trigger_activate()
+    # node.trigger_configure()
+    # node.trigger_activate()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

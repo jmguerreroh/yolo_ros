@@ -22,6 +22,7 @@ from rclpy.qos import QoSReliabilityPolicy
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.lifecycle import LifecycleState
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
 
 import cv2
 import numpy as np
@@ -39,10 +40,10 @@ from yolo_msgs.msg import Detection
 from yolo_msgs.msg import DetectionArray
 
 
-class TrackingNode(LifecycleNode):
+class TrackingNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
-        super().__init__("tracking_node")
+        super().__init__("yolo_tracking_node")
 
         # params
         self.declare_parameter("tracker", "bytetrack.yaml")
@@ -201,8 +202,8 @@ class TrackingNode(LifecycleNode):
 def main():
     rclpy.init()
     node = TrackingNode()
-    node.trigger_configure()
-    node.trigger_activate()
+    # node.trigger_configure()
+    # node.trigger_activate()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

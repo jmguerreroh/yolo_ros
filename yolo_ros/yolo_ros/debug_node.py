@@ -28,6 +28,7 @@ from rclpy.qos import QoSReliabilityPolicy
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle import TransitionCallbackReturn
 from rclpy.lifecycle import LifecycleState
+from rclpy_cascade_lifecycle.cascade_lifecycle_node import CascadeLifecycleNode
 
 import message_filters
 from cv_bridge import CvBridge
@@ -43,10 +44,10 @@ from yolo_msgs.msg import Detection
 from yolo_msgs.msg import DetectionArray
 
 
-class DebugNode(LifecycleNode):
+class DebugNode(CascadeLifecycleNode):
 
     def __init__(self) -> None:
-        super().__init__("debug_node")
+        super().__init__("yolo_debug_node")
 
         self._class_to_color = {}
         self.cv_bridge = CvBridge()
@@ -373,8 +374,8 @@ class DebugNode(LifecycleNode):
 def main():
     rclpy.init()
     node = DebugNode()
-    node.trigger_configure()
-    node.trigger_activate()
+    # node.trigger_configure()
+    # node.trigger_activate()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
