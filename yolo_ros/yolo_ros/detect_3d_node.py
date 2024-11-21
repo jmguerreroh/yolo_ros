@@ -144,7 +144,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
             (self.rgb_sub, self.depth_sub, self.depth_info_sub, self.detections_sub), 
-            10, 
+            10,
             0.5,
         )
         self._synchronizer.registerCallback(self.on_detections)
