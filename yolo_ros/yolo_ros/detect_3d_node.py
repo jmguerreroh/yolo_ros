@@ -55,6 +55,9 @@ class Detect3DNode(CascadeLifecycleNode):
         self.declare_parameter(
             "depth_image_reliability", QoSReliabilityPolicy.BEST_EFFORT
         )
+        self.declare_parameter(
+            "rgb_image_reliability", QoSReliabilityPolicy.BEST_EFFORT
+        )
         self.declare_parameter("depth_info_reliability", QoSReliabilityPolicy.BEST_EFFORT)
 
         # aux
@@ -72,6 +75,11 @@ class Detect3DNode(CascadeLifecycleNode):
             .get_parameter_value()
             .double_value
         )
+        rgbimg_reliability = (
+            self.get_parameter("rgb_image_reliability")
+            .get_parameter_value()
+            .integer_value
+        )
         self.depth_image_units_divisor = (
             self.get_parameter("depth_image_units_divisor")
             .get_parameter_value()
@@ -81,6 +89,13 @@ class Detect3DNode(CascadeLifecycleNode):
             self.get_parameter("depth_image_reliability")
             .get_parameter_value()
             .integer_value
+        )
+
+        self.rgb_image_qos_profile = QoSProfile(
+            reliability=rgbimg_reliability,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            depth=1,
         )
 
         self.depth_image_qos_profile = QoSProfile(
@@ -115,7 +130,10 @@ class Detect3DNode(CascadeLifecycleNode):
     def on_activate(self, state: LifecycleState) -> TransitionCallbackReturn:
         self.get_logger().info(f"[{self.get_name()}] Activating...")
 
-        # subs
+        # subs 
+        self.rgb_sub = message_filters.Subscriber(
+            self, Image, "image_raw", qos_profile=self.depth_image_qos_profile
+        )
         self.depth_sub = message_filters.Subscriber(
             self, Image, "depth_image", qos_profile=self.depth_image_qos_profile
         )
@@ -127,7 +145,7 @@ class Detect3DNode(CascadeLifecycleNode):
         )
 
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            (self.depth_sub, self.depth_info_sub, self.detections_sub), 10, 0.5
+            (self.rgb_sub, self.depth_sub, self.depth_info_sub, self.detections_sub), 10, 0.5
         )
         self._synchronizer.registerCallback(self.on_detections)
 
@@ -168,6 +186,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
     def on_detections(
         self,
+        rgb_msg: Image,
         depth_msg: Image,
         depth_info_msg: CameraInfo,
         detections_msg: DetectionArray,
@@ -175,6 +194,7 @@ class Detect3DNode(CascadeLifecycleNode):
 
         new_detections_msg = DetectionArray()
         new_detections_msg.header = detections_msg.header
+        new_detections_msg.source_img = rgb_msg
         new_detections_msg.detections = self.process_detections(
             depth_msg, depth_info_msg, detections_msg
         )

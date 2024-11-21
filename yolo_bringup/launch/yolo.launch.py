@@ -139,10 +139,18 @@ def generate_launch_description():
             description="Name of the input depth topic",
         )
 
+        rgb_image_reliability = LaunchConfiguration("rgb_image_reliability")
+        rgb_image_reliability_cmd = DeclareLaunchArgument(
+            "rgb_image_reliability",
+            default_value="1",
+            choices=["0", "1", "2"],
+            description="Specific reliability QoS of the input rgb image topic (0=system default, 1=Reliable, 2=Best Effort)",
+        )
+
         depth_image_reliability = LaunchConfiguration("depth_image_reliability")
         depth_image_reliability_cmd = DeclareLaunchArgument(
             "depth_image_reliability",
-            default_value="2",
+            default_value="1",
             choices=["0", "1", "2"],
             description="Specific reliability QoS of the input depth image topic (0=system default, 1=Reliable, 2=Best Effort)",
         )
@@ -157,7 +165,7 @@ def generate_launch_description():
         depth_info_reliability = LaunchConfiguration("depth_info_reliability")
         depth_info_reliability_cmd = DeclareLaunchArgument(
             "depth_info_reliability",
-            default_value="2",
+            default_value="1",
             choices=["0", "1", "2"],
             description="Specific reliability QoS of the input depth info topic (0=system default, 1=Reliable, 2=Best Effort)",
         )
@@ -255,9 +263,11 @@ def generate_launch_description():
                     "depth_image_units_divisor": depth_image_units_divisor,
                     "depth_image_reliability": depth_image_reliability,
                     "depth_info_reliability": depth_info_reliability,
+                    "rgb_image_reliability": rgb_image_reliability,
                 }
             ],
             remappings=[
+                ("image_raw", input_image_topic),
                 ("depth_image", input_depth_topic),
                 ("depth_info", input_depth_info_topic),
                 ("detections", detect_3d_detections_topic),
@@ -297,6 +307,7 @@ def generate_launch_description():
             image_reliability_cmd,
             input_depth_topic_cmd,
             depth_image_reliability_cmd,
+            rgb_image_reliability_cmd,
             input_depth_info_topic_cmd,
             depth_info_reliability_cmd,
             target_frame_cmd,
